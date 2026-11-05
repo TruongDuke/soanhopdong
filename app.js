@@ -281,10 +281,10 @@
     $("btnParse").onclick = function(){ if(fillFromQr($("qrText").value)) recompute(); };
     $("cccdFile").addEventListener("change", scanFromFile);
     document.addEventListener("paste", handlePaste);
-    // Ô dán/kéo-thả/bấm chọn ảnh
+    // Nút chọn/chụp ảnh (mở hộp thoại); ô dz chỉ để DÁN / kéo-thả
+    $("btnPick").onclick = function(){ $("cccdFile").click(); };
     var dz = $("dz");
     if(dz){
-      dz.addEventListener("click", function(){ $("cccdFile").click(); });
       dz.addEventListener("dragover", function(e){ e.preventDefault(); dz.classList.add("drag"); });
       dz.addEventListener("dragleave", function(){ dz.classList.remove("drag"); });
       dz.addEventListener("drop", function(e){
