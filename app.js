@@ -114,16 +114,41 @@
   function stopScan(){ if(scanner){ scanner.stop().then(function(){ scanner.clear(); scanner=null; resetScanBtn(); }).catch(resetScanBtn); } else resetScanBtn(); }
   function resetScanBtn(){ $("btnScan").style.display="block"; $("btnStop").style.display="none"; }
 
-  /* ---------- đọc QR từ ảnh CCCD tải lên ---------- */
+  /* ---------- đọc QR từ ảnh CCCD tải lên (jsQR + canvas, thử nhiều cỡ) ---------- */
+  function qrAt(img, tw, th, sx, sy, sw, sh){
+    var c = document.createElement("canvas"); c.width = tw; c.height = th;
+    var ctx = c.getContext("2d"); ctx.drawImage(img, sx, sy, sw, sh, 0, 0, tw, th);
+    var d = ctx.getImageData(0, 0, tw, th);
+    var r = window.jsQR ? window.jsQR(d.data, tw, th, {inversionAttempts:"attemptBoth"}) : null;
+    return r && r.data;
+  }
+  function decodeImage(img){
+    var W = img.naturalWidth, H = img.naturalHeight, MAX = 1600;
+    // 1) toàn ảnh, chuẩn hoá cạnh dài về <=1600 (ảnh to thu nhỏ, ảnh nhỏ phóng to)
+    var s = MAX / Math.max(W, H);
+    var tries = [[Math.round(W*s), Math.round(H*s), 0, 0, W, H]];
+    // 2) cắt vùng góc trên phải (nơi có mã QR) rồi phóng cho nét
+    var cw = Math.round(W*0.42), ch = Math.round(H*0.52), cx = W-cw, cy = 0;
+    var cs = 1000 / Math.max(cw, ch);
+    tries.push([Math.round(cw*cs), Math.round(ch*cs), cx, cy, cw, ch]);
+    tries.push([Math.round(cw*cs*1.6), Math.round(ch*cs*1.6), cx, cy, cw, ch]);
+    for (var i=0;i<tries.length;i++){ var t=tries[i]; try{ var v=qrAt(img,t[0],t[1],t[2],t[3],t[4],t[5]); if(v) return v; }catch(e){} }
+    return null;
+  }
   function scanFromFile(ev){
     var file = ev.target.files && ev.target.files[0];
     if(!file) return;
-    if(!window.Html5Qrcode){ alert("Chưa tải được bộ quét."); return; }
-    var fr = new Html5Qrcode("reader-file");
+    if(!window.jsQR){ alert("Chưa tải được bộ đọc mã."); return; }
     msg("Đang đọc ảnh…");
-    fr.scanFile(file, false)
-      .then(function(txt){ if(fillFromQr(txt)){ recompute(); msg("Đã đọc CCCD từ ảnh ✓"); } try{fr.clear();}catch(e){} })
-      .catch(function(){ msg("Ảnh chưa đọc được mã QR — chụp rõ & cận mã QR hơn, hoặc dán chuỗi bên dưới."); try{fr.clear();}catch(e){} });
+    var img = new Image();
+    img.onload = function(){
+      var txt = decodeImage(img);
+      if(txt){ if(fillFromQr(txt)){ recompute(); msg("Đã đọc CCCD từ ảnh ✓"); } }
+      else { msg("Ảnh chưa đọc được mã QR. Chụp lại CẬN và RÕ ngay mã QR (góc trên phải thẻ), đủ sáng, không loá — hoặc bấm Quét trực tiếp cho chắc."); }
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = function(){ msg("Không mở được ảnh này."); URL.revokeObjectURL(img.src); };
+    img.src = URL.createObjectURL(file);
     ev.target.value = "";
   }
 
