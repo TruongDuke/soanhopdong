@@ -281,6 +281,18 @@
     $("btnParse").onclick = function(){ if(fillFromQr($("qrText").value)) recompute(); };
     $("cccdFile").addEventListener("change", scanFromFile);
     document.addEventListener("paste", handlePaste);
+    // Ô dán/kéo-thả/bấm chọn ảnh
+    var dz = $("dz");
+    if(dz){
+      dz.addEventListener("click", function(){ $("cccdFile").click(); });
+      dz.addEventListener("dragover", function(e){ e.preventDefault(); dz.classList.add("drag"); });
+      dz.addEventListener("dragleave", function(){ dz.classList.remove("drag"); });
+      dz.addEventListener("drop", function(e){
+        e.preventDefault(); dz.classList.remove("drag");
+        var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if(f) runOcr(f);
+      });
+    }
     $("tien_vay").addEventListener("input", recompute);
     $("ngay_vay").addEventListener("change", recompute);
     $("btnPair").onclick = function(){
