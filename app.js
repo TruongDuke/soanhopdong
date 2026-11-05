@@ -114,26 +114,38 @@
   function stopScan(){ if(scanner){ scanner.stop().then(function(){ scanner.clear(); scanner=null; resetScanBtn(); }).catch(resetScanBtn); } else resetScanBtn(); }
   function resetScanBtn(){ $("btnScan").style.display="block"; $("btnStop").style.display="none"; }
 
+  /* ---------- đọc QR từ ảnh CCCD tải lên ---------- */
+  function scanFromFile(ev){
+    var file = ev.target.files && ev.target.files[0];
+    if(!file) return;
+    if(!window.Html5Qrcode){ alert("Chưa tải được bộ quét."); return; }
+    var fr = new Html5Qrcode("reader-file");
+    msg("Đang đọc ảnh…");
+    fr.scanFile(file, false)
+      .then(function(txt){ if(fillFromQr(txt)){ recompute(); msg("Đã đọc CCCD từ ảnh ✓"); } try{fr.clear();}catch(e){} })
+      .catch(function(){ msg("Ảnh chưa đọc được mã QR — chụp rõ & cận mã QR hơn, hoặc dán chuỗi bên dưới."); try{fr.clear();}catch(e){} });
+    ev.target.value = "";
+  }
 
   /* ---------- gắn sự kiện ---------- */
   document.addEventListener("DOMContentLoaded", function(){
     $("btnScan").onclick = startScan;
     $("btnStop").onclick = stopScan;
     $("btnParse").onclick = function(){ if(fillFromQr($("qrText").value)) recompute(); };
+    $("cccdFile").addEventListener("change", scanFromFile);
     $("tien_vay").addEventListener("input", recompute);
     $("ngay_vay").addEventListener("change", recompute);
-    $("btnAll").onclick = function(){
+    $("btnPair").onclick = function(){
       var d=collect(); msg("Đang tạo…");
       Promise.resolve()
         .then(function(){return genOne("camdo",d);})
         .then(function(){return genOne("thuemay",d);})
-        .then(function(){return genOne("muaban",d);})
-        .then(function(){ msg("Đã tạo cả 3 hợp đồng ✓ (xem trong mục tải về)"); })
+        .then(function(){ msg("Đã tạo cầm đồ + thuê máy ✓ (xem mục tải về)"); })
         .catch(function(e){ msg("Lỗi: "+e.message); });
     };
-    Array.prototype.forEach.call(document.querySelectorAll("[data-one]"), function(b){
-      b.onclick=function(){ var d=collect(); msg("Đang tạo…");
-        genOne(b.getAttribute("data-one"),d).then(function(){msg("Đã tạo ✓");}).catch(function(e){msg("Lỗi: "+e.message);}); };
-    });
+    $("btnMuaban").onclick = function(){
+      var d=collect(); msg("Đang tạo…");
+      genOne("muaban",d).then(function(){ msg("Đã tạo giấy mua bán ✓"); }).catch(function(e){ msg("Lỗi: "+e.message); });
+    };
   });
 })();

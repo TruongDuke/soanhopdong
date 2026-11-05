@@ -43,6 +43,9 @@ input:focus,textarea:focus{outline:2px solid #bcd0f5;border-color:var(--accent)}
       <button class="btn ghost" id="btnStop" style="display:none">Dừng quét</button>
     </div>
     <div id="reader"></div>
+    <label for="cccdFile" class="btn ghost" style="display:block;text-align:center;cursor:pointer;margin-top:8px">🖼 Tải ảnh CCCD lên (ảnh chụp sẵn)</label>
+    <input id="cccdFile" type="file" accept="image/*" style="display:none">
+    <div id="reader-file" style="display:none"></div>
     <label>Hoặc dán chuỗi QR (để thử trên máy tính):</label>
     <textarea id="qrText" rows="2" placeholder="001...|...|HỌ TÊN|ddmmyyyy|Nam|địa chỉ|ddmmyyyy"></textarea>
     <div class="row-btns">
@@ -92,10 +95,8 @@ input:focus,textarea:focus{outline:2px solid #bcd0f5;border-color:var(--accent)}
   <div class="card">
     <h2>5. Tạo hợp đồng</h2>
     <div class="row-btns">
-      <button class="btn green" id="btnAll">⬇ Tải cả 3 hợp đồng</button>
-      <button class="btn ghost" data-one="camdo">Hợp đồng cầm đồ</button>
-      <button class="btn ghost" data-one="thuemay">Hợp đồng thuê máy</button>
-      <button class="btn ghost" data-one="muaban">Giấy mua bán</button>
+      <button class="btn green" id="btnPair">⬇ Tạo cầm đồ + thuê máy (1 lượt)</button>
+      <button class="btn ghost" id="btnMuaban">Giấy mua bán (lâu lâu mới cần)</button>
     </div>
     <div class="hint" id="genMsg"></div>
   </div>
