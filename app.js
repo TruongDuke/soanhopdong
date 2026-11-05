@@ -181,8 +181,7 @@
     }catch(e){}
     return c;
   }
-  function scanFromFile(ev){
-    var file = ev.target.files && ev.target.files[0];
+  function runOcr(file){
     if(!file) return;
     if(!window.Tesseract){ alert("Chưa tải được bộ đọc chữ (OCR)."); return; }
     msg("Đang đọc chữ trên thẻ… (lần đầu hơi lâu vì tải bộ đọc, ~10–20s)");
@@ -200,7 +199,17 @@
     };
     img.onerror = function(){ msg("Không mở được ảnh này."); URL.revokeObjectURL(img.src); };
     img.src = URL.createObjectURL(file);
-    ev.target.value = "";
+  }
+  function scanFromFile(ev){ runOcr(ev.target.files && ev.target.files[0]); ev.target.value = ""; }
+  // Dán ảnh thẳng (Ctrl/Cmd+V) — như dán ảnh vào chat
+  function handlePaste(e){
+    var items = (e.clipboardData && e.clipboardData.items) || [];
+    for(var i=0;i<items.length;i++){
+      if(items[i].type && items[i].type.indexOf("image")===0){
+        var f = items[i].getAsFile();
+        if(f){ e.preventDefault(); runOcr(f); return; }
+      }
+    }
   }
 
   /* ---------- gắn sự kiện ---------- */
@@ -209,6 +218,7 @@
     $("btnStop").onclick = stopScan;
     $("btnParse").onclick = function(){ if(fillFromQr($("qrText").value)) recompute(); };
     $("cccdFile").addEventListener("change", scanFromFile);
+    document.addEventListener("paste", handlePaste);
     $("tien_vay").addEventListener("input", recompute);
     $("ngay_vay").addEventListener("change", recompute);
     $("btnPair").onclick = function(){
