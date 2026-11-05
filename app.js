@@ -131,6 +131,7 @@
     return best;
   }
   function cleanAddr(s){
+    s = s.replace(/^.*?resi\w*[^A-Za-zÀ-ỹ0-9]*/i, "");            // cắt tới hết nhãn "Place of residence"
     s = s.replace(/c[oó]\s*g[^,]*?\d{4}[^\s,]*/ig, "");           // bỏ "Có giá trị đến ...2037."
     var prev = null;
     while(prev !== s){
@@ -138,10 +139,31 @@
       s = s.replace(/^[^0-9A-Za-zÀ-ỹ]+/, "");                     // rác đầu
       s = s.replace(/^(í|i|place|of|residence|ofresidence|resi|ofresi|ne|e)['’:\s]+/i, ""); // mảnh nhãn Anh
     }
-    s = s.replace(/\S*[®©=|{}§¢∞~^`]\S*/g, " ");                  // bỏ cụm dính ký hiệu rác OCR
+    s = s.replace(/\S*[®©=|{}§¢∞~`]\S*/g, " ");                   // bỏ cụm dính ký hiệu rác OCR
+    s = s.replace(/["^~]/g, "");                                  // bỏ ký tự rác lẻ còn sót
     s = s.replace(/(\d)\s+(\d)/g, "$1$2");                        // "291 0" -> "2910"
     s = s.replace(/\s+/g, " ").replace(/\s*,\s*/g, ", ").replace(/[\s,\-]+$/, "").trim();
     return s;
+  }
+  function extractAddr(text){
+    var lines = text.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
+    for(var k=0;k<lines.length;k++){
+      var mk = lines[k].match(/(?:thường\s*trú|residence|resi)[^\n]*/i);
+      if(mk){
+        var raw = lines[k].slice(mk.index) + " " + (lines[k+1]||"");
+        raw = raw.replace(/^(nơi\s*)?thường\s*trú/i, "");
+        return cleanAddr(raw);
+      }
+    }
+    // không thấy nhãn → gom 2 dòng cuối (vùng đã cắt sẵn chỉ còn địa chỉ)
+    return cleanAddr(lines.slice(-2).join(" "));
+  }
+  function cropRegion(src, x0, y0, x1, y1){
+    var w=src.width, h=src.height;
+    var sx=Math.round(w*x0), sy=Math.round(h*y0), sw=Math.round(w*(x1-x0)), sh=Math.round(h*(y1-y0));
+    var c=document.createElement("canvas"); c.width=sw; c.height=sh;
+    c.getContext("2d").drawImage(src, sx,sy,sw,sh, 0,0,sw,sh);
+    return c;
   }
   function fillFromOCR(text){
     var lines = text.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
@@ -191,9 +213,20 @@
       try{ input = preprocess(img); }catch(e){ input = file; }
       Tesseract.recognize(input, "vie")
         .then(function(r){
-          if(fillFromOCR(r.data.text)){ recompute(); msg("Đã điền tên + số CCCD ✓ — địa chỉ mời nhập tay. Nhớ liếc lại tên/số giúp."); }
+          var ok = fillFromOCR(r.data.text);
+          if(ok){ recompute(); msg("Đã điền tên + số ✓ — đang đọc địa chỉ…"); }
           else { msg("Chưa bóc được thông tin. Chụp lại rõ & thẳng mặt trước thẻ, đủ sáng, hoặc nhập tay."); }
-          URL.revokeObjectURL(img.src);
+          // pass-2: cắt vùng dưới-phải (bỏ góc trái = ngày hết hạn) đọc riêng địa chỉ
+          if(ok && input && input.getContext){
+            Tesseract.recognize(cropRegion(input, 0.30, 0.52, 1.0, 1.0), "vie")
+              .then(function(r2){
+                var a = extractAddr(r2.data.text);
+                if(a){ setVal("dia_chi",a); setVal("cho_o",a); $("dia_chi").classList.add("filled"); $("cho_o").classList.add("filled"); }
+                msg("Đã điền tên + số + địa chỉ ✓ — nhớ liếc kiểm lại (OCR có thể sai vài chữ, nhất là địa chỉ).");
+                URL.revokeObjectURL(img.src);
+              })
+              .catch(function(){ msg("Đã điền tên + số ✓ — địa chỉ chưa đọc được, mời nhập tay."); URL.revokeObjectURL(img.src); });
+          } else { URL.revokeObjectURL(img.src); }
         })
         .catch(function(e){ msg("Không đọc được ảnh: "+(e&&e.message||e)); URL.revokeObjectURL(img.src); });
     };
