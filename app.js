@@ -118,11 +118,14 @@
   // chỉ loại chữ CHẮC CHẮN là tiêu đề — KHÔNG loại Công/Dân/Nam/Việt vì hay có trong tên thật
   var BAD_NAME = {"CỘNG":1,"CƯỚC":1,"CARD":1,"REPUBLIC":1,"SOCIALIST":1,"IDENTITY":1,"CITIZEN":1,
     "FULL":1,"NAME":1,"HỌ":1,"TÊN":1,"HẠNH":1,"PHÚC":1,"ĐỘC":1,"LẬP":1,"FREEDOM":1,"INDEPENDENCE":1,"PLACE":1,"RESIDENCE":1};
+  var VOWELS = "aàáảãạăằắẳẵặâầấẩẫậeèéẻẽẹêềếểễệiìíỉĩịoòóỏõọôồốổỗộơờớởỡợuùúủũụưừứửữựyỳýỷỹỵ";
+  function hasVowel(w){ w=w.toLowerCase(); for(var i=0;i<w.length;i++){ if(VOWELS.indexOf(w[i])>=0) return true; } return false; }
   function nameFrom(s){
     var runs = s.match(/[A-ZÀ-ỸĐ]{2,}(?:\s+[A-ZÀ-ỸĐ]+)*/g) || [];
     var best = "";
     runs.forEach(function(r){
-      var toks = r.split(/\s+/).filter(function(w){ return w.length>=2 && !BAD_NAME[w]; });
+      // token tên tiếng Việt phải có nguyên âm → loại rác như "HP", "TT"
+      var toks = r.split(/\s+/).filter(function(w){ return w.length>=2 && !BAD_NAME[w] && hasVowel(w); });
       if(toks.length>=1 && toks.length<=5){ var c = toks.join(" "); if(c.length>=6 && c.length>best.length) best = c; }
     });
     return best;
@@ -135,6 +138,7 @@
       s = s.replace(/^[^0-9A-Za-zÀ-ỹ]+/, "");                     // rác đầu
       s = s.replace(/^(í|i|place|of|residence|ofresidence|resi|ofresi|ne|e)['’:\s]+/i, ""); // mảnh nhãn Anh
     }
+    s = s.replace(/\S*[®©=|{}§¢∞~^`]\S*/g, " ");                  // bỏ cụm dính ký hiệu rác OCR
     s = s.replace(/(\d)\s+(\d)/g, "$1$2");                        // "291 0" -> "2910"
     s = s.replace(/\s+/g, " ").replace(/\s*,\s*/g, ", ").replace(/[\s,\-]+$/, "").trim();
     return s;
