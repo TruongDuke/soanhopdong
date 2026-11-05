@@ -180,7 +180,7 @@
     for(var j=0;j<lines.length;j++){
       if(numRx.test(lines[j])){ var dd=lines[j].replace(/\D/g,""); if(dd.length>=10){ cccd = dd.length>=12 ? dd.slice(-12) : dd; break; } }
     }
-    if(!cccd){ for(var j2=0;j2<lines.length;j2++){ var d2=lines[j2].replace(/\D/g,""); if(d2.length>=12){ cccd=d2.slice(-12); break; } } }
+    // KHÔNG vớ bừa dãy số ở dòng khác — thà để trống còn hơn ra số SAI trên hợp đồng
     // CHỈ điền tên + số (OCR chắc); địa chỉ để nhân viên gõ tay cho chuẩn (OCR địa chỉ hay rác)
     var got = false;
     if(name){ setVal("ho_ten",name); $("ho_ten").classList.add("filled"); got=true; }
@@ -222,7 +222,7 @@
               .then(function(r2){
                 var a = extractAddr(r2.data.text);
                 if(a){ setVal("dia_chi",a); setVal("cho_o",a); $("dia_chi").classList.add("filled"); $("cho_o").classList.add("filled"); }
-                msg("Đã điền tên + số + địa chỉ ✓ — nhớ liếc kiểm lại (OCR có thể sai vài chữ, nhất là địa chỉ).");
+                msg("Đã điền tên + số + địa chỉ ✓ — KIỂM KỸ SỐ CCCD (từng chữ số) và địa chỉ, OCR có thể sai.");
                 URL.revokeObjectURL(img.src);
               })
               .catch(function(){ msg("Đã điền tên + số ✓ — địa chỉ chưa đọc được, mời nhập tay."); URL.revokeObjectURL(img.src); });
