@@ -159,21 +159,10 @@
       if(numRx.test(lines[j])){ var dd=lines[j].replace(/\D/g,""); if(dd.length>=10){ cccd = dd.length>=12 ? dd.slice(-12) : dd; break; } }
     }
     if(!cccd){ for(var j2=0;j2<lines.length;j2++){ var d2=lines[j2].replace(/\D/g,""); if(d2.length>=12){ cccd=d2.slice(-12); break; } } }
-    // Địa chỉ thường trú: bắt từ nhãn, nối dòng kế, rồi dọn mảnh nhãn Anh + chữ "Có giá trị đến"
-    var addr = "";
-    for(var k=0;k<lines.length;k++){
-      var mk=lines[k].match(/(?:thường\s*trú|residence|resi)[^\n]*/i);
-      if(mk){
-        var raw = lines[k].slice(mk.index) + " " + (lines[k+1]||"");
-        raw = raw.replace(/^(nơi\s*)?thường\s*trú/i,"");
-        addr = cleanAddr(raw);
-        break;
-      }
-    }
+    // CHỈ điền tên + số (OCR chắc); địa chỉ để nhân viên gõ tay cho chuẩn (OCR địa chỉ hay rác)
     var got = false;
     if(name){ setVal("ho_ten",name); $("ho_ten").classList.add("filled"); got=true; }
     if(cccd){ setVal("cccd",cccd); $("cccd").classList.add("filled"); got=true; }
-    if(addr){ setVal("dia_chi",addr); setVal("cho_o",addr); $("dia_chi").classList.add("filled"); $("cho_o").classList.add("filled"); got=true; }
     return got;
   }
   // tiền xử lý: phóng to + xám hoá + kéo giãn tương phản → OCR ăn hơn nhiều
@@ -203,7 +192,7 @@
       try{ input = preprocess(img); }catch(e){ input = file; }
       Tesseract.recognize(input, "vie")
         .then(function(r){
-          if(fillFromOCR(r.data.text)){ recompute(); msg("Đã đọc từ ảnh ✓ — kiểm lại giúp, OCR có thể sai vài chữ (nhất là địa chỉ)."); }
+          if(fillFromOCR(r.data.text)){ recompute(); msg("Đã điền tên + số CCCD ✓ — địa chỉ mời nhập tay. Nhớ liếc lại tên/số giúp."); }
           else { msg("Chưa bóc được thông tin. Chụp lại rõ & thẳng mặt trước thẻ, đủ sáng, hoặc nhập tay."); }
           URL.revokeObjectURL(img.src);
         })
