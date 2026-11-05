@@ -114,41 +114,55 @@
   function stopScan(){ if(scanner){ scanner.stop().then(function(){ scanner.clear(); scanner=null; resetScanBtn(); }).catch(resetScanBtn); } else resetScanBtn(); }
   function resetScanBtn(){ $("btnScan").style.display="block"; $("btnStop").style.display="none"; }
 
-  /* ---------- đọc QR từ ảnh CCCD tải lên (jsQR + canvas, thử nhiều cỡ) ---------- */
-  function qrAt(img, tw, th, sx, sy, sw, sh){
-    var c = document.createElement("canvas"); c.width = tw; c.height = th;
-    var ctx = c.getContext("2d"); ctx.drawImage(img, sx, sy, sw, sh, 0, 0, tw, th);
-    var d = ctx.getImageData(0, 0, tw, th);
-    var r = window.jsQR ? window.jsQR(d.data, tw, th, {inversionAttempts:"attemptBoth"}) : null;
-    return r && r.data;
+  /* ---------- đọc CHỮ trên ảnh CCCD bằng OCR (Tesseract, tiếng Việt) ---------- */
+  var BAD_NAME = {"CỘNG":1,"CƯỚC":1,"CÔNG":1,"DÂN":1,"CARD":1,"REPUBLIC":1,"VIET":1,"NAM":1,"IDENTITY":1,
+    "SOCIALIST":1,"FULL":1,"NAME":1,"HỌ":1,"TÊN":1,"CITIZEN":1,"PLACE":1,"RESIDENCE":1,"NGHĨA":1,"VIỆT":1};
+  function nameFrom(s){
+    var runs = s.match(/[A-ZÀ-ỸĐ]{2,}(?:\s+[A-ZÀ-ỸĐ]+)*/g) || [];
+    var best = "";
+    runs.forEach(function(r){
+      var toks = r.split(/\s+/).filter(function(w){ return w.length>=2 && !BAD_NAME[w]; });
+      if(toks.length>=2 && toks.length<=5){ var c = toks.join(" "); if(c.length>best.length) best = c; }
+    });
+    return best;
   }
-  function decodeImage(img){
-    var W = img.naturalWidth, H = img.naturalHeight, MAX = 1600;
-    // 1) toàn ảnh, chuẩn hoá cạnh dài về <=1600 (ảnh to thu nhỏ, ảnh nhỏ phóng to)
-    var s = MAX / Math.max(W, H);
-    var tries = [[Math.round(W*s), Math.round(H*s), 0, 0, W, H]];
-    // 2) cắt vùng góc trên phải (nơi có mã QR) rồi phóng cho nét
-    var cw = Math.round(W*0.42), ch = Math.round(H*0.52), cx = W-cw, cy = 0;
-    var cs = 1000 / Math.max(cw, ch);
-    tries.push([Math.round(cw*cs), Math.round(ch*cs), cx, cy, cw, ch]);
-    tries.push([Math.round(cw*cs*1.6), Math.round(ch*cs*1.6), cx, cy, cw, ch]);
-    for (var i=0;i<tries.length;i++){ var t=tries[i]; try{ var v=qrAt(img,t[0],t[1],t[2],t[3],t[4],t[5]); if(v) return v; }catch(e){} }
-    return null;
+  function fillFromOCR(text){
+    var lines = text.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
+    var name = "";
+    for(var i=0;i<lines.length;i++){
+      if(/Họ và tên|Full\s*?name/i.test(lines[i])){
+        [lines[i], lines[i+1]||""].forEach(function(c){ var n=nameFrom(c); if(n.length>name.length) name=n; });
+        if(name) break;
+      }
+    }
+    var cccd = "";
+    for(var j=0;j<lines.length;j++){ var d=lines[j].replace(/\D/g,""); var m=d.match(/\d{12}/); if(m){ cccd=m[0]; break; } }
+    var addr = "";
+    for(var k=0;k<lines.length;k++){
+      var a=lines[k].match(/(?:thường trú|residence)\s*[:'’]?\s*(.*)$/i);
+      if(a){
+        addr = ((a[1]||"")+" "+(lines[k+1]||"")).replace(/Place of residence/ig,"")
+                .replace(/\s+/g," ").replace(/^[^0-9A-Za-zÀ-ỹ]+/,"").trim();
+        break;
+      }
+    }
+    var got = false;
+    if(name){ setVal("ho_ten",name); $("ho_ten").classList.add("filled"); got=true; }
+    if(cccd){ setVal("cccd",cccd); $("cccd").classList.add("filled"); got=true; }
+    if(addr){ setVal("dia_chi",addr); setVal("cho_o",addr); $("dia_chi").classList.add("filled"); $("cho_o").classList.add("filled"); got=true; }
+    return got;
   }
   function scanFromFile(ev){
     var file = ev.target.files && ev.target.files[0];
     if(!file) return;
-    if(!window.jsQR){ alert("Chưa tải được bộ đọc mã."); return; }
-    msg("Đang đọc ảnh…");
-    var img = new Image();
-    img.onload = function(){
-      var txt = decodeImage(img);
-      if(txt){ if(fillFromQr(txt)){ recompute(); msg("Đã đọc CCCD từ ảnh ✓"); } }
-      else { msg("Ảnh chưa đọc được mã QR. Chụp lại CẬN và RÕ ngay mã QR (góc trên phải thẻ), đủ sáng, không loá — hoặc bấm Quét trực tiếp cho chắc."); }
-      URL.revokeObjectURL(img.src);
-    };
-    img.onerror = function(){ msg("Không mở được ảnh này."); URL.revokeObjectURL(img.src); };
-    img.src = URL.createObjectURL(file);
+    if(!window.Tesseract){ alert("Chưa tải được bộ đọc chữ (OCR)."); return; }
+    msg("Đang đọc chữ trên thẻ… (lần đầu hơi lâu vì tải bộ đọc, ~10–20s)");
+    Tesseract.recognize(file, "vie")
+      .then(function(r){
+        if(fillFromOCR(r.data.text)){ recompute(); msg("Đã đọc từ ảnh ✓ — kiểm lại giúp, OCR có thể sai vài chữ (nhất là địa chỉ)."); }
+        else { msg("Chưa bóc được thông tin. Chụp lại rõ & thẳng mặt trước thẻ, đủ sáng, hoặc nhập tay."); }
+      })
+      .catch(function(e){ msg("Không đọc được ảnh: "+(e&&e.message||e)); });
     ev.target.value = "";
   }
 
