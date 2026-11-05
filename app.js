@@ -123,7 +123,7 @@
     var best = "";
     runs.forEach(function(r){
       var toks = r.split(/\s+/).filter(function(w){ return w.length>=2 && !BAD_NAME[w]; });
-      if(toks.length>=2 && toks.length<=5){ var c = toks.join(" "); if(c.length>best.length) best = c; }
+      if(toks.length>=1 && toks.length<=5){ var c = toks.join(" "); if(c.length>=6 && c.length>best.length) best = c; }
     });
     return best;
   }
@@ -148,10 +148,13 @@
         if(name) break;
       }
     }
-    // CCCD: ưu tiên dòng có "Số/No", lấy 12 số CUỐI của dãy (OCR hay dư số ở đầu)
+    // CCCD: tìm dòng "Số/No", lấy số của dòng đó (12 số cuối, hoặc giữ nguyên nếu OCR thiếu số để NV bổ sung)
     var cccd = "";
-    var order = lines.filter(function(l){ return /(S[ốô]|No)\b|ố\s*\//.test(l); }).concat(lines);
-    for(var j=0;j<order.length;j++){ var d=order[j].replace(/\D/g,""); if(d.length>=12){ cccd=d.slice(-12); break; } }
+    var numRx = /s[oốô]\s*\/?\s*no|\/no|no\s*[:.]|s[ốô]\b|^s[oố]|só/i;
+    for(var j=0;j<lines.length;j++){
+      if(numRx.test(lines[j])){ var dd=lines[j].replace(/\D/g,""); if(dd.length>=10){ cccd = dd.length>=12 ? dd.slice(-12) : dd; break; } }
+    }
+    if(!cccd){ for(var j2=0;j2<lines.length;j2++){ var d2=lines[j2].replace(/\D/g,""); if(d2.length>=12){ cccd=d2.slice(-12); break; } } }
     // Địa chỉ thường trú: bắt từ nhãn, nối dòng kế, rồi dọn mảnh nhãn Anh + chữ "Có giá trị đến"
     var addr = "";
     for(var k=0;k<lines.length;k++){
