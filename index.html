@@ -23,8 +23,8 @@ input:focus,textarea:focus{outline:2px solid #bcd0f5;border-color:var(--accent)}
 .btn.green{background:var(--ok)}
 .row-btns{display:grid;gap:8px;margin-top:8px}
 #reader{margin-top:12px;border-radius:10px;overflow:hidden}
-.dz{border:2px dashed var(--navy);border-radius:12px;padding:20px 14px;text-align:center;cursor:pointer;background:#f5f8ff;display:flex;flex-direction:column;gap:5px}
-.dz:hover,.dz.drag{background:#e7f0ff;border-color:var(--accent)}
+.dz{border:2px dashed var(--navy);border-radius:12px;padding:20px 14px;text-align:center;cursor:pointer;background:#f5f8ff;display:flex;flex-direction:column;gap:5px;caret-color:transparent;outline:none;user-select:none}
+.dz:hover,.dz.drag,.dz:focus{background:#e7f0ff;border-color:var(--accent)}
 .dz b{font-size:1.05rem;color:var(--navy)}
 .dz small{color:var(--muted);font-size:.82rem}
 .dz u{color:var(--navy)}
@@ -47,9 +47,9 @@ details summary{cursor:pointer;color:var(--muted);font-size:.85rem;margin-top:4p
 
     <button class="btn" id="btnPick">📁 Chọn / chụp ảnh CCCD</button>
     <input id="cccdFile" type="file" accept="image/*" style="display:none">
-    <div class="dz" id="dz" tabindex="0">
+    <div class="dz" id="dz" contenteditable="true" tabindex="0">
       <b>… hoặc DÁN ảnh vào đây</b>
-      <small>Máy tính: copy ảnh rồi bấm <u>Ctrl / Cmd + V</u> (dán được ở bất kỳ đâu trên trang), hoặc kéo-thả ảnh vào ô này</small>
+      <small>Bấm vào ô này 1 cái, rồi <u>Ctrl / Cmd + V</u> để dán ảnh. Hoặc kéo-thả ảnh vào ô.</small>
       <small>→ tự điền tên + số + địa chỉ (nhớ liếc kiểm lại)</small>
     </div>
 
@@ -122,7 +122,7 @@ details summary{cursor:pointer;color:var(--muted);font-size:.85rem;margin-top:4p
 <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.71.1/build/docxtemplater.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
-<script src="numwords.js?v=18"></script>
-<script src="app.js?v=18"></script>
+<script src="numwords.js?v=19"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>

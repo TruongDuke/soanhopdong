@@ -265,12 +265,17 @@
   function scanFromFile(ev){ runOcr(ev.target.files && ev.target.files[0]); ev.target.value = ""; }
   // Dán ảnh thẳng (Ctrl/Cmd+V) — như dán ảnh vào chat
   function handlePaste(e){
-    var items = (e.clipboardData && e.clipboardData.items) || [];
+    var cd = e.clipboardData || window.clipboardData; if(!cd) return;
+    var items = cd.items || [];
     for(var i=0;i<items.length;i++){
       if(items[i].type && items[i].type.indexOf("image")===0){
         var f = items[i].getAsFile();
         if(f){ e.preventDefault(); runOcr(f); return; }
       }
+    }
+    var files = cd.files || [];
+    for(var k=0;k<files.length;k++){
+      if(files[k].type && files[k].type.indexOf("image")===0){ e.preventDefault(); runOcr(files[k]); return; }
     }
   }
 
@@ -285,6 +290,8 @@
     $("btnPick").onclick = function(){ $("cccdFile").click(); };
     var dz = $("dz");
     if(dz){
+      dz.addEventListener("paste", handlePaste);                         // Safari: paste bắn trên ô editable
+      dz.addEventListener("keydown", function(e){ if(!(e.metaKey||e.ctrlKey)) e.preventDefault(); }); // chặn gõ chữ, cho Ctrl/Cmd+V
       dz.addEventListener("dragover", function(e){ e.preventDefault(); dz.classList.add("drag"); });
       dz.addEventListener("dragleave", function(){ dz.classList.remove("drag"); });
       dz.addEventListener("drop", function(e){
