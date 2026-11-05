@@ -172,17 +172,41 @@
     if(addr){ setVal("dia_chi",addr); setVal("cho_o",addr); $("dia_chi").classList.add("filled"); $("cho_o").classList.add("filled"); got=true; }
     return got;
   }
+  // tiền xử lý: phóng to + xám hoá + kéo giãn tương phản → OCR ăn hơn nhiều
+  function preprocess(img){
+    var MAXW = 2200, scale = Math.min(2.2, MAXW/img.naturalWidth); if(scale < 1) scale = 1;
+    var w = Math.round(img.naturalWidth*scale), h = Math.round(img.naturalHeight*scale);
+    var c = document.createElement("canvas"); c.width = w; c.height = h;
+    var ctx = c.getContext("2d"); ctx.drawImage(img, 0, 0, w, h);
+    try{
+      var id = ctx.getImageData(0,0,w,h), d = id.data, n = d.length, mn = 255, mx = 0, i, g;
+      var gray = new Uint8Array(n>>2);
+      for(i=0;i<n;i+=4){ g=(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114)|0; gray[i>>2]=g; if(g<mn)mn=g; if(g>mx)mx=g; }
+      var lo=mn, hi=mx; if(hi-lo<40) hi=lo+40; var range=hi-lo||1;
+      for(i=0;i<n;i+=4){ var v=(gray[i>>2]-lo)*255/range; v=v<0?0:v>255?255:v; d[i]=d[i+1]=d[i+2]=v; }
+      ctx.putImageData(id,0,0);
+    }catch(e){}
+    return c;
+  }
   function scanFromFile(ev){
     var file = ev.target.files && ev.target.files[0];
     if(!file) return;
     if(!window.Tesseract){ alert("Chưa tải được bộ đọc chữ (OCR)."); return; }
     msg("Đang đọc chữ trên thẻ… (lần đầu hơi lâu vì tải bộ đọc, ~10–20s)");
-    Tesseract.recognize(file, "vie")
-      .then(function(r){
-        if(fillFromOCR(r.data.text)){ recompute(); msg("Đã đọc từ ảnh ✓ — kiểm lại giúp, OCR có thể sai vài chữ (nhất là địa chỉ)."); }
-        else { msg("Chưa bóc được thông tin. Chụp lại rõ & thẳng mặt trước thẻ, đủ sáng, hoặc nhập tay."); }
-      })
-      .catch(function(e){ msg("Không đọc được ảnh: "+(e&&e.message||e)); });
+    var img = new Image();
+    img.onload = function(){
+      var input;
+      try{ input = preprocess(img); }catch(e){ input = file; }
+      Tesseract.recognize(input, "vie")
+        .then(function(r){
+          if(fillFromOCR(r.data.text)){ recompute(); msg("Đã đọc từ ảnh ✓ — kiểm lại giúp, OCR có thể sai vài chữ (nhất là địa chỉ)."); }
+          else { msg("Chưa bóc được thông tin. Chụp lại rõ & thẳng mặt trước thẻ, đủ sáng, hoặc nhập tay."); }
+          URL.revokeObjectURL(img.src);
+        })
+        .catch(function(e){ msg("Không đọc được ảnh: "+(e&&e.message||e)); URL.revokeObjectURL(img.src); });
+    };
+    img.onerror = function(){ msg("Không mở được ảnh này."); URL.revokeObjectURL(img.src); };
+    img.src = URL.createObjectURL(file);
     ev.target.value = "";
   }
 
