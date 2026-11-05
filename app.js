@@ -115,8 +115,9 @@
   function resetScanBtn(){ $("btnScan").style.display="block"; $("btnStop").style.display="none"; }
 
   /* ---------- đọc CHỮ trên ảnh CCCD bằng OCR (Tesseract, tiếng Việt) ---------- */
-  var BAD_NAME = {"CỘNG":1,"CƯỚC":1,"CÔNG":1,"DÂN":1,"CARD":1,"REPUBLIC":1,"VIET":1,"NAM":1,"IDENTITY":1,
-    "SOCIALIST":1,"FULL":1,"NAME":1,"HỌ":1,"TÊN":1,"CITIZEN":1,"PLACE":1,"RESIDENCE":1,"NGHĨA":1,"VIỆT":1};
+  // chỉ loại chữ CHẮC CHẮN là tiêu đề — KHÔNG loại Công/Dân/Nam/Việt vì hay có trong tên thật
+  var BAD_NAME = {"CỘNG":1,"CƯỚC":1,"CARD":1,"REPUBLIC":1,"SOCIALIST":1,"IDENTITY":1,"CITIZEN":1,
+    "FULL":1,"NAME":1,"HỌ":1,"TÊN":1,"HẠNH":1,"PHÚC":1,"ĐỘC":1,"LẬP":1,"FREEDOM":1,"INDEPENDENCE":1,"PLACE":1,"RESIDENCE":1};
   function nameFrom(s){
     var runs = s.match(/[A-ZÀ-ỸĐ]{2,}(?:\s+[A-ZÀ-ỸĐ]+)*/g) || [];
     var best = "";
@@ -125,6 +126,18 @@
       if(toks.length>=2 && toks.length<=5){ var c = toks.join(" "); if(c.length>best.length) best = c; }
     });
     return best;
+  }
+  function cleanAddr(s){
+    s = s.replace(/c[oó]\s*g[^,]*?\d{4}[^\s,]*/ig, "");           // bỏ "Có giá trị đến ...2037."
+    var prev = null;
+    while(prev !== s){
+      prev = s;
+      s = s.replace(/^[^0-9A-Za-zÀ-ỹ]+/, "");                     // rác đầu
+      s = s.replace(/^(í|i|place|of|residence|ofresidence|resi|ofresi|ne|e)['’:\s]+/i, ""); // mảnh nhãn Anh
+    }
+    s = s.replace(/(\d)\s+(\d)/g, "$1$2");                        // "291 0" -> "2910"
+    s = s.replace(/\s+/g, " ").replace(/\s*,\s*/g, ", ").replace(/[\s,\-]+$/, "").trim();
+    return s;
   }
   function fillFromOCR(text){
     var lines = text.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
@@ -135,14 +148,18 @@
         if(name) break;
       }
     }
+    // CCCD: ưu tiên dòng có "Số/No", lấy 12 số CUỐI của dãy (OCR hay dư số ở đầu)
     var cccd = "";
-    for(var j=0;j<lines.length;j++){ var d=lines[j].replace(/\D/g,""); var m=d.match(/\d{12}/); if(m){ cccd=m[0]; break; } }
+    var order = lines.filter(function(l){ return /(S[ốô]|No)\b|ố\s*\//.test(l); }).concat(lines);
+    for(var j=0;j<order.length;j++){ var d=order[j].replace(/\D/g,""); if(d.length>=12){ cccd=d.slice(-12); break; } }
+    // Địa chỉ thường trú: bắt từ nhãn, nối dòng kế, rồi dọn mảnh nhãn Anh + chữ "Có giá trị đến"
     var addr = "";
     for(var k=0;k<lines.length;k++){
-      var a=lines[k].match(/(?:thường trú|residence)\s*[:'’]?\s*(.*)$/i);
-      if(a){
-        addr = ((a[1]||"")+" "+(lines[k+1]||"")).replace(/Place of residence/ig,"")
-                .replace(/\s+/g," ").replace(/^[^0-9A-Za-zÀ-ỹ]+/,"").trim();
+      var mk=lines[k].match(/(?:thường\s*trú|residence|resi)[^\n]*/i);
+      if(mk){
+        var raw = lines[k].slice(mk.index) + " " + (lines[k+1]||"");
+        raw = raw.replace(/^(nơi\s*)?thường\s*trú/i,"");
+        addr = cleanAddr(raw);
         break;
       }
     }
