@@ -240,11 +240,17 @@
     return c;
   }
   function looksLikeCCCD(text){
-    return /Họ và tên|Full\s*name|CĂN CƯỚC|thường trú/i.test(text||"") || /\d{9,}/.test((text||"").replace(/\s/g,""));
+    var t = text||"";
+    // nhận diện theo NHÃN (chỉ đọc được khi ảnh đúng hướng) hoặc có đúng dãy 12 số
+    return /Họ và tên|Full\s*name|CĂN CƯỚC|CƯỚC CÔNG|thường trú|residence|Date of birth|Ngày sinh/i.test(t) || /\d{12}/.test(t.replace(/\s/g,""));
+  }
+  function clearOcrFields(){
+    ["ho_ten","cccd","dia_chi","cho_o"].forEach(function(id){ if($(id)){ $(id).value=""; $(id).classList.remove("filled"); } });
   }
   function runOcr(file){
     if(!file) return;
     if(!window.Tesseract){ alert("Chưa tải được bộ đọc chữ (OCR)."); return; }
+    clearOcrFields();   // xoá dữ liệu ảnh cũ — tránh giữ nhầm thông tin người trước
     msg("Đang đọc chữ trên thẻ… (lần đầu hơi lâu vì tải bộ đọc, ~10–20s)");
     var img = new Image();
     img.onload = function(){
