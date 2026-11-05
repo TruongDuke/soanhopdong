@@ -290,8 +290,6 @@
     $("btnPick").onclick = function(){ $("cccdFile").click(); };
     var dz = $("dz");
     if(dz){
-      dz.addEventListener("paste", handlePaste);                         // Safari: paste bắn trên ô editable
-      dz.addEventListener("keydown", function(e){ if(!(e.metaKey||e.ctrlKey)) e.preventDefault(); }); // chặn gõ chữ, cho Ctrl/Cmd+V
       dz.addEventListener("dragover", function(e){ e.preventDefault(); dz.classList.add("drag"); });
       dz.addEventListener("dragleave", function(){ dz.classList.remove("drag"); });
       dz.addEventListener("drop", function(e){
