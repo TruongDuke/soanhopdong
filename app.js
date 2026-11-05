@@ -203,6 +203,34 @@
     }catch(e){}
     return c;
   }
+  function cropPixels(src, x, y, w, h){
+    x=Math.max(0,Math.round(x)); y=Math.max(0,Math.round(y)); w=Math.round(w); h=Math.round(h);
+    if(x+w>src.width) w=src.width-x; if(y+h>src.height) h=src.height-y;
+    if(w<=0||h<=0) return src;
+    var c=document.createElement("canvas"); c.width=w; c.height=h;
+    c.getContext("2d").drawImage(src, x,y,w,h, 0,0,w,h); return c;
+  }
+  function allWords(data){
+    var ws=[];
+    (data.blocks||[]).forEach(function(b){ (b.paragraphs||[]).forEach(function(p){ (p.lines||[]).forEach(function(ln){ (ln.words||[]).forEach(function(w){ ws.push(w); }); }); }); });
+    return ws;
+  }
+  // Định vị ô SỐ bằng toạ độ (bbox) của Tesseract → đọc số chính xác, không lệ thuộc vị trí
+  function improveNumber(data, canvas){
+    if(!canvas || !canvas.getContext) return Promise.resolve();
+    var H=canvas.height, ws=allWords(data), numW=null, maxd=0;
+    ws.forEach(function(w){ var d=(w.text||"").replace(/\D/g,""); if(w.bbox && d.length>=8 && w.bbox.y0 < H*0.62 && d.length>maxd){ maxd=d.length; numW=w; } });
+    if(!numW) return Promise.resolve();
+    function setC(v){ if(v && v.length>=10){ setVal("cccd", v); $("cccd").classList.add("filled"); } }
+    var d=(numW.text||"").replace(/\D/g,"");
+    if(d.length>=12){ setC(d.slice(-12)); return Promise.resolve(); }   // word đã đủ 12 số
+    // thiếu số đầu (OCR đọc "00"→"ÖQ") → cắt bbox đọc lại cho rõ
+    var bb=numW.bbox, px=Math.round((bb.x1-bb.x0)*0.03), py=Math.round((bb.y1-bb.y0)*0.4);
+    var crop=cropPixels(canvas, bb.x0-px, bb.y0-py, (bb.x1-bb.x0)+2*px, (bb.y1-bb.y0)+2*py);
+    var up=document.createElement("canvas"); up.width=crop.width*3; up.height=crop.height*3;
+    up.getContext("2d").drawImage(crop,0,0,up.width,up.height);
+    return Tesseract.recognize(up, "vie").then(function(r){ var d2=(r.data.text||"").replace(/\D/g,""); setC(d2.length>=12?d2.slice(-12):d); }).catch(function(){ setC(d); });
+  }
   function runOcr(file){
     if(!file) return;
     if(!window.Tesseract){ alert("Chưa tải được bộ đọc chữ (OCR)."); return; }
@@ -211,9 +239,10 @@
     img.onload = function(){
       var input;
       try{ input = preprocess(img); }catch(e){ input = file; }
-      Tesseract.recognize(input, "vie")
+      Tesseract.recognize(input, "vie", {}, { blocks: true })
         .then(function(r){
           var ok = fillFromOCR(r.data.text);
+          improveNumber(r.data, input);   // định vị + đọc lại số CCCD cho chuẩn
           if(ok){ recompute(); msg("Đã điền tên + số ✓ — đang đọc địa chỉ…"); }
           else { msg("Chưa bóc được thông tin. Chụp lại rõ & thẳng mặt trước thẻ, đủ sáng, hoặc nhập tay."); }
           // pass-2: cắt vùng dưới-phải (bỏ góc trái = ngày hết hạn) đọc riêng địa chỉ
