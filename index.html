@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Soạn hợp đồng — Dương Nguyễn 79</title>
+<style>
+:root{--navy:#1f3864;--ink:#172338;--muted:#5b6b86;--line:#dfe4ec;--bg:#eef1f6;--card:#fff;--ok:#1a7f45;--accent:#1f6feb;}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+.wrap{max-width:720px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-left)) 60px max(16px,env(safe-area-inset-right))}
+h1{font-size:1.25rem;margin:.2rem 0}
+.sub{color:var(--muted);font-size:.9rem;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.card h2{font-size:1rem;margin:0 0 12px;color:var(--navy)}
+label{display:block;font-size:.82rem;color:var(--muted);margin:10px 0 3px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:.95rem;font-family:inherit;background:#fff;color:var(--ink)}
+input:focus,textarea:focus{outline:2px solid #bcd0f5;border-color:var(--accent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{display:inline-block;width:100%;padding:13px;border:none;border-radius:10px;background:var(--navy);color:#fff;font-size:1rem;font-weight:600;cursor:pointer;font-family:inherit}
+.btn:active{opacity:.85}
+.btn.ghost{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}
+.btn.green{background:var(--ok)}
+.row-btns{display:grid;gap:8px;margin-top:8px}
+#reader{margin-top:12px;border-radius:10px;overflow:hidden}
+.auto{background:#f4f8ff;border:1px dashed #bcd0f5;border-radius:9px;padding:10px 12px;font-size:.9rem;margin-top:6px}
+.auto b{color:var(--navy)}
+.hint{font-size:.8rem;color:var(--muted);margin-top:6px}
+.filled{border-color:var(--ok)!important;background:#f3fbf6}
+.note{font-size:.78rem;color:var(--muted);margin-top:14px;text-align:center}
+.tag{display:inline-block;background:#eef3fb;color:var(--navy);border-radius:6px;padding:1px 7px;font-size:.72rem;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Soạn hợp đồng tự động</h1>
+  <div class="sub">HKD Dương Nguyễn 79 · quét CCCD là tự điền cả 3 giấy</div>
+
+  <div class="card">
+    <h2>1. Quét CCCD khách <span class="tag">tự điền</span></h2>
+    <div class="row-btns">
+      <button class="btn" id="btnScan">📷 Quét mã QR trên CCCD</button>
+      <button class="btn ghost" id="btnStop" style="display:none">Dừng quét</button>
+    </div>
+    <div id="reader"></div>
+    <label>Hoặc dán chuỗi QR (để thử trên máy tính):</label>
+    <textarea id="qrText" rows="2" placeholder="001...|...|HỌ TÊN|ddmmyyyy|Nam|địa chỉ|ddmmyyyy"></textarea>
+    <div class="row-btns">
+      <button class="btn ghost" id="btnParse">Điền từ chuỗi vừa dán</button>
+    </div>
+    <div class="hint">Trên điện thoại, bấm “Quét” rồi chĩa camera vào mặt trước thẻ.</div>
+  </div>
+
+  <div class="card">
+    <h2>2. Thông tin khách</h2>
+    <label>Họ và tên</label><input id="ho_ten">
+    <div class="grid2">
+      <div><label>Số CCCD</label><input id="cccd"></div>
+      <div><label>Cấp ngày</label><input id="cap_ngay" placeholder="dd/mm/yyyy"></div>
+    </div>
+    <label>Nơi cấp</label><input id="noi_cap" value="Cục Cảnh sát QLHC về TTXH">
+    <label>Địa chỉ thường trú</label><input id="dia_chi">
+    <label>Chỗ ở hiện tại</label><input id="cho_o">
+    <label>Điện thoại</label><input id="dien_thoai" inputmode="numeric">
+  </div>
+
+  <div class="card">
+    <h2>3. Thiết bị</h2>
+    <div class="grid2">
+      <div><label>Loại máy / Hãng / Model</label><input id="may" placeholder="iPhone 13"></div>
+      <div><label>Màu</label><input id="mau" placeholder="Đen"></div>
+    </div>
+    <div class="grid2">
+      <div><label>IMEI / Serial</label><input id="imei" inputmode="numeric"></div>
+      <div><label>Dung lượng / cấu hình</label><input id="cau_hinh" placeholder="128GB"></div>
+    </div>
+    <label>Tình trạng</label><input id="tinh_trang" value="Máy cũ đã qua sử dụng">
+  </div>
+
+  <div class="card">
+    <h2>4. Khoản vay</h2>
+    <div class="grid2">
+      <div><label>Số hợp đồng</label><input id="so_hd" placeholder="001"></div>
+      <div><label>Ngày vay</label><input id="ngay_vay" type="date"></div>
+    </div>
+    <label>Tiền vay (VNĐ)</label><input id="tien_vay" inputmode="numeric" placeholder="10000000">
+    <div class="auto" id="autoBox">Nhập tiền vay &amp; ngày vay để xem phần tự tính…</div>
+    <label>Giá mua (nếu lập giấy mua bán)</label><input id="gia" inputmode="numeric" placeholder="9500000">
+    <label>Hình thức thanh toán (giấy mua bán)</label><input id="hinh_thuc_tt" value="Chuyển khoản">
+  </div>
+
+  <div class="card">
+    <h2>5. Tạo hợp đồng</h2>
+    <div class="row-btns">
+      <button class="btn green" id="btnAll">⬇ Tải cả 3 hợp đồng</button>
+      <button class="btn ghost" data-one="camdo">Hợp đồng cầm đồ</button>
+      <button class="btn ghost" data-one="thuemay">Hợp đồng thuê máy</button>
+      <button class="btn ghost" data-one="muaban">Giấy mua bán</button>
+    </div>
+    <div class="hint" id="genMsg"></div>
+  </div>
+
+  <div class="note">Dữ liệu chỉ xử lý trên máy bạn, không gửi đi đâu. · Bản demo</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pizzip@3.3.0/dist/pizzip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pizzip@3.3.0/dist/pizzip-utils.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.71.1/build/docxtemplater.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<script src="numwords.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
