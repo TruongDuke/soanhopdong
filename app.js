@@ -131,6 +131,7 @@
     return best;
   }
   function cleanAddr(s){
+    s = s.replace(/^[^:]{0,45}:\s*/, "");                         // cắt tới dấu ":" (hết nhãn, kể cả OCR sai chính tả)
     s = s.replace(/^.*?resi\w*[^A-Za-zÀ-ỹ0-9]*/i, "");            // cắt tới hết nhãn "Place of residence"
     s = s.replace(/c[oó]\s*g[^,]*?\d{4}[^\s,]*/ig, "");           // bỏ "Có giá trị đến ...2037."
     var prev = null;
