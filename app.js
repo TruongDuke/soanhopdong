@@ -231,36 +231,60 @@
     up.getContext("2d").drawImage(crop,0,0,up.width,up.height);
     return Tesseract.recognize(up, "vie").then(function(r){ var d2=(r.data.text||"").replace(/\D/g,""); setC(d2.length>=12?d2.slice(-12):d); }).catch(function(){ setC(d); });
   }
+  function rotateCanvas(src, deg){
+    if(!deg) return src;
+    var w=src.width, h=src.height, c=document.createElement("canvas");
+    if(deg===90||deg===270){ c.width=h; c.height=w; } else { c.width=w; c.height=h; }
+    var ctx=c.getContext("2d");
+    ctx.translate(c.width/2, c.height/2); ctx.rotate(deg*Math.PI/180); ctx.drawImage(src, -w/2, -h/2);
+    return c;
+  }
+  function looksLikeCCCD(text){
+    return /Họ và tên|Full\s*name|CĂN CƯỚC|thường trú/i.test(text||"") || /\d{9,}/.test((text||"").replace(/\s/g,""));
+  }
   function runOcr(file){
     if(!file) return;
     if(!window.Tesseract){ alert("Chưa tải được bộ đọc chữ (OCR)."); return; }
     msg("Đang đọc chữ trên thẻ… (lần đầu hơi lâu vì tải bộ đọc, ~10–20s)");
     var img = new Image();
     img.onload = function(){
-      var input;
-      try{ input = preprocess(img); }catch(e){ input = file; }
-      Tesseract.recognize(input, "vie", {}, { blocks: true })
-        .then(function(r){
-          var ok = fillFromOCR(r.data.text);
-          improveNumber(r.data, input);   // định vị + đọc lại số CCCD cho chuẩn
-          if(ok){ recompute(); msg("Đã điền tên + số ✓ — đang đọc địa chỉ…"); }
-          else { msg("Chưa bóc được thông tin. Chụp lại rõ & thẳng mặt trước thẻ, đủ sáng, hoặc nhập tay."); }
-          // pass-2: cắt vùng dưới-phải (bỏ góc trái = ngày hết hạn) đọc riêng địa chỉ
-          if(ok && input && input.getContext){
-            Tesseract.recognize(cropRegion(input, 0.30, 0.52, 1.0, 1.0), "vie")
-              .then(function(r2){
-                var a = extractAddr(r2.data.text);
-                if(a){ setVal("dia_chi",a); setVal("cho_o",a); $("dia_chi").classList.add("filled"); $("cho_o").classList.add("filled"); }
-                msg("Đã điền tên + số + địa chỉ ✓ — KIỂM KỸ SỐ CCCD (từng chữ số) và địa chỉ, OCR có thể sai.");
-                URL.revokeObjectURL(img.src);
-              })
-              .catch(function(){ msg("Đã điền tên + số ✓ — địa chỉ chưa đọc được, mời nhập tay."); URL.revokeObjectURL(img.src); });
-          } else { URL.revokeObjectURL(img.src); }
-        })
-        .catch(function(e){ msg("Không đọc được ảnh: "+(e&&e.message||e)); URL.revokeObjectURL(img.src); });
+      var base; try{ base = preprocess(img); }catch(e){ base = null; }
+      if(!base || !base.getContext){
+        Tesseract.recognize(file, "vie", {}, { blocks: true }).then(function(r){ finish(file, r.data); }).catch(err);
+        return;
+      }
+      // Thử các hướng xoay (ảnh có thể bị nằm ngang) — chọn hướng đọc ra CCCD
+      var angles = [0, 270, 90, 180];
+      (function tryAngle(i){
+        var canv = rotateCanvas(base, angles[i]);
+        Tesseract.recognize(canv, "vie", {}, { blocks: true })
+          .then(function(r){
+            if(looksLikeCCCD(r.data.text) || i === angles.length-1){ finish(canv, r.data); }
+            else tryAngle(i+1);
+          })
+          .catch(function(){ if(i < angles.length-1) tryAngle(i+1); else err({message:"OCR lỗi"}); });
+      })(0);
     };
     img.onerror = function(){ msg("Không mở được ảnh này."); URL.revokeObjectURL(img.src); };
     img.src = URL.createObjectURL(file);
+    function err(e){ msg("Không đọc được ảnh: "+(e&&e.message||e)); URL.revokeObjectURL(img.src); }
+    function finish(canvas, data){
+      var cv = canvas && canvas.getContext ? canvas : null;
+      var ok = fillFromOCR(data.text);
+      improveNumber(data, cv);
+      if(ok){ recompute(); msg("Đã điền tên + số ✓ — đang đọc địa chỉ…"); }
+      else { msg("Ảnh đọc không ra chữ. Chụp lại rõ, THẲNG (thẻ nằm ngang), đủ sáng — hoặc nhập tay."); URL.revokeObjectURL(img.src); return; }
+      if(cv){
+        Tesseract.recognize(cropRegion(cv, 0.30, 0.52, 1.0, 1.0), "vie")
+          .then(function(r2){
+            var a = extractAddr(r2.data.text);
+            if(a){ setVal("dia_chi",a); setVal("cho_o",a); $("dia_chi").classList.add("filled"); $("cho_o").classList.add("filled"); }
+            msg("Đã điền tên + số + địa chỉ ✓ — KIỂM KỸ SỐ CCCD (từng chữ số) và địa chỉ, OCR có thể sai.");
+            URL.revokeObjectURL(img.src);
+          })
+          .catch(function(){ msg("Đã điền tên + số ✓ — địa chỉ chưa đọc được, mời nhập tay."); URL.revokeObjectURL(img.src); });
+      } else URL.revokeObjectURL(img.src);
+    }
   }
   function scanFromFile(ev){ runOcr(ev.target.files && ev.target.files[0]); ev.target.value = ""; }
   // Dán ảnh thẳng (Ctrl/Cmd+V) — như dán ảnh vào chat
